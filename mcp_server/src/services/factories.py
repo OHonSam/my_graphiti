@@ -432,15 +432,19 @@ class DatabaseDriverFactory:
                 import os
 
                 uri = os.environ.get('NEO4J_URI', neo4j_config.uri)
-                username = os.environ.get('NEO4J_USER', neo4j_config.username)
+                username = os.environ.get(
+                    'NEO4J_USERNAME', os.environ.get('NEO4J_USER', neo4j_config.username)
+                )
                 password = os.environ.get('NEO4J_PASSWORD', neo4j_config.password)
+                database = os.environ.get('NEO4J_DATABASE', neo4j_config.database)
 
                 return {
                     'uri': uri,
                     'user': username,
                     'password': password,
-                    # Note: database and use_parallel_runtime would need to be passed
-                    # to the driver after initialization if supported
+                    'database': database,
+                    # Note: use_parallel_runtime would need to be passed to the driver
+                    # after initialization if supported
                 }
 
             case 'falkordb':

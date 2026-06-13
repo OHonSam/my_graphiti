@@ -24,3 +24,5 @@ if __name__ == '__main__':
 
     # Pass all command line arguments to the original main function
     main()
+
+    # uv run main.py --database-provider neo4j --model gpt-4o-mini --transport http --group-id my-project
