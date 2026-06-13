@@ -20,10 +20,12 @@ import logging
 import os
 from datetime import datetime, timezone
 from logging import INFO
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 from graphiti_core import Graphiti
+from graphiti_core.driver.neo4j_driver import Neo4jDriver
 from graphiti_core.nodes import EpisodeType
 from graphiti_core.search.search_config_recipes import NODE_HYBRID_SEARCH_RRF
 
@@ -42,13 +44,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+load_dotenv(Path(__file__).with_name('.env'), override=True)
 
 # Neo4j connection parameters
 # Make sure Neo4j Desktop is running with a local DBMS started
 neo4j_uri = os.environ.get('NEO4J_URI', 'bolt://localhost:7687')
 neo4j_user = os.environ.get('NEO4J_USER', 'neo4j')
 neo4j_password = os.environ.get('NEO4J_PASSWORD', 'password')
+neo4j_database = os.environ.get('NEO4J_DATABASE', neo4j_user)
 
 if not neo4j_uri or not neo4j_user or not neo4j_password:
     raise ValueError('NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set')
@@ -64,7 +67,13 @@ async def main():
     #################################################
 
     # Initialize Graphiti with Neo4j connection
-    graphiti = Graphiti(neo4j_uri, neo4j_user, neo4j_password)
+    driver = Neo4jDriver(
+        uri=neo4j_uri,
+        user=neo4j_user,
+        password=neo4j_password,
+        database=neo4j_database,
+    )
+    graphiti = Graphiti(graph_driver=driver)
 
     try:
         #################################################
