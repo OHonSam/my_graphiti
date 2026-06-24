@@ -90,6 +90,7 @@ async def main():
     await client.build_indices_and_constraints()
     await ingest_products_data(client)
     await add_messages(client)
+    await client.build_communities()
 
 
 async def ingest_products_data(client: Graphiti):
