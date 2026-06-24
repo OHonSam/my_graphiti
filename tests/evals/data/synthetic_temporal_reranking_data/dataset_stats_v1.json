@@ -1,0 +1,39 @@
+{
+  "generated_at": "2026-06-24T09:25:48.396802+00:00",
+  "model": "gpt-4o",
+  "raw_scenarios": 20,
+  "clean_scenarios": 2,
+  "rejected_scenarios": 18,
+  "total_queries": 6,
+  "temporal_queries": 6,
+  "temporal_query_percent": 100.0,
+  "profile_counts": {
+    "current_state": 2,
+    "latest_observation": 2,
+    "point_in_time": 2
+  },
+  "domain_counts": {
+    "project_owner_change": 2
+  },
+  "avg_episodes_per_scenario": 3.5,
+  "avg_queries_per_scenario": 3.0,
+  "rejection_reasons": {
+    "scenario must contain at least 3 queries": 14,
+    "q_002: temporal_profile=point_in_time conflicts with deterministic inference=semantic_fact": 6,
+    "q_003: gold_answer is not recoverable from episode text or gold_fact_contains": 4,
+    "q_001: temporal_profile=point_in_time conflicts with deterministic inference=semantic_fact": 3,
+    "q_003: temporal_profile=timeline conflicts with deterministic inference=semantic_fact": 3,
+    "q_002: gold_answer is not recoverable from episode text or gold_fact_contains": 3,
+    "q_001: gold_answer is not recoverable from episode text or gold_fact_contains": 2,
+    "q_001: temporal_profile=latest_observation conflicts with deterministic inference=semantic_fact": 1,
+    "q_001: negative facts not found in episodes: ['full services restored']": 1,
+    "q_001: negative facts not found in episodes: ['security audit completed']": 1,
+    "q_001: negative facts not found in episodes: ['reducing 5%', 'increasing 2%']": 1,
+    "q_002: negative facts not found in episodes: ['reducing 5%', 'reducing 3%']": 1,
+    "q_001: temporal_profile=timeline conflicts with deterministic inference=semantic_fact": 1,
+    "q_002: temporal_profile=timeline conflicts with deterministic inference=semantic_fact": 1,
+    "q_003: negative facts not found in episodes: ['Closed', 'Pending']": 1,
+    "q_002: negative facts not found in episodes: ['Pending']": 1,
+    "q_003: negative facts not found in episodes: ['Pending', 'Resolved']": 1
+  }
+}
