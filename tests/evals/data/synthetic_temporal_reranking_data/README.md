@@ -106,3 +106,40 @@ The cleaned dataset is ready for Graphiti ingestion when:
 3. Run `sample --sample-size 10`.
 4. If quality looks good, generate the full batch.
 5. Resolve gold edge UUIDs only after Graphiti ingestion.
+
+## Baseline Reranker Evaluation
+
+After generating and spot-checking `temporal_scenarios_v1.jsonl`, run the first baseline by ingesting the cleaned scenarios into Graphiti and comparing existing edge rerankers.
+
+For Neo4j Aura, keep `NEO4J_DATABASE` set to your Aura database name. The runner uses that as the Graphiti `group_id` by default so Graphiti does not try to switch to a non-existent database named `temporal_benchmark_v1`.
+
+Run ingestion and evaluation together:
+
+```powershell
+uv run python tests/evals/data/synthetic_temporal_reranking_data/baseline_rerankers.py run --reset-group --rerankers edge_rrf edge_mmr edge_episode_mentions edge_cross_encoder --cross-encoder-provider openai
+```
+
+Or run them as two steps:
+
+```powershell
+uv run python tests/evals/data/synthetic_temporal_reranking_data/baseline_rerankers.py ingest --reset-group
+uv run python tests/evals/data/synthetic_temporal_reranking_data/baseline_rerankers.py evaluate --rerankers edge_rrf edge_mmr edge_episode_mentions edge_cross_encoder --cross-encoder-provider openai
+```
+
+Outputs:
+
+```text
+baseline_reranker_results_v1.jsonl
+baseline_reranker_summary_v1.json
+```
+
+The V1 evaluator reports `hit_at_1`, `hit_at_3`, `hit_at_5`, `mrr`, average latency, and `negative_above_gold_rate`. Scoring is keyword-based using `gold_fact_contains` and `negative_fact_contains`; edge UUID labels can be added after Graphiti extraction is stable.
+
+To compare cross-encoder backends, keep the ingested graph fixed and rerun only `evaluate`:
+
+```powershell
+uv run python tests/evals/data/synthetic_temporal_reranking_data/baseline_rerankers.py evaluate --rerankers edge_cross_encoder --cross-encoder-provider openai --results tests/evals/data/synthetic_temporal_reranking_data/baseline_openai_results_v1.jsonl --summary tests/evals/data/synthetic_temporal_reranking_data/baseline_openai_summary_v1.json
+uv run python tests/evals/data/synthetic_temporal_reranking_data/baseline_rerankers.py evaluate --rerankers edge_cross_encoder --cross-encoder-provider bge --results tests/evals/data/synthetic_temporal_reranking_data/baseline_bge_results_v1.jsonl --summary tests/evals/data/synthetic_temporal_reranking_data/baseline_bge_summary_v1.json
+```
+
+`bge` requires the `sentence-transformers` extra. `gemini` requires the Gemini dependency and `GEMINI_API_KEY`.

@@ -19,13 +19,15 @@ import json
 import os
 import random
 import re
+import nltk
+from nltk.corpus import stopwords
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-
 from pydantic import BaseModel, Field, field_validator
 
+nltk.download('stopwords')
 
 OUTPUT_DIR = Path(__file__).resolve().parent
 GROUP_ID = 'temporal_benchmark_v1'
@@ -209,31 +211,7 @@ CURRENT_PATTERNS = [
 ]
 
 TOKEN_RE = re.compile(r'[a-z0-9]+')
-TEXT_MATCH_STOPWORDS = {
-    'a',
-    'an',
-    'and',
-    'are',
-    'as',
-    'at',
-    'be',
-    'been',
-    'being',
-    'by',
-    'for',
-    'from',
-    'in',
-    'is',
-    'of',
-    'on',
-    'or',
-    'the',
-    'to',
-    'was',
-    'were',
-    'with',
-}
-
+TEXT_MATCH_STOPWORDS =  set(stopwords.words('english'))
 
 class EpisodeSpec(BaseModel):
     episode_id: str = Field(description='Unique episode id within the scenario')

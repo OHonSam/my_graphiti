@@ -1,0 +1,231 @@
+{
+  "generated_at": "2026-06-24T15:12:54.509601+00:00",
+  "total_rows": 204,
+  "profile_counts": {
+    "current_state": 52,
+    "latest_observation": 24,
+    "point_in_time": 72,
+    "semantic_fact": 4,
+    "timeline": 52
+  },
+  "rerankers": {
+    "edge_cross_encoder": {
+      "queries": 51,
+      "hit_at_1": 0.098,
+      "hit_at_3": 0.2549,
+      "hit_at_5": 0.2549,
+      "mrr": 0.1667,
+      "negative_above_gold_rate": 0.1176,
+      "avg_latency_ms": 1237.11
+    },
+    "edge_episode_mentions": {
+      "queries": 51,
+      "hit_at_1": 0.0784,
+      "hit_at_3": 0.2549,
+      "hit_at_5": 0.2549,
+      "mrr": 0.1471,
+      "negative_above_gold_rate": 0.1176,
+      "avg_latency_ms": 523.52
+    },
+    "edge_mmr": {
+      "queries": 51,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.0196,
+      "hit_at_5": 0.0196,
+      "mrr": 0.0098,
+      "negative_above_gold_rate": 0.0196,
+      "avg_latency_ms": 571.17
+    },
+    "edge_rrf": {
+      "queries": 51,
+      "hit_at_1": 0.098,
+      "hit_at_3": 0.2549,
+      "hit_at_5": 0.2549,
+      "mrr": 0.1569,
+      "negative_above_gold_rate": 0.1176,
+      "avg_latency_ms": 569.41
+    }
+  },
+  "reranker_profiles": {
+    "edge_cross_encoder::current_state": {
+      "queries": 13,
+      "hit_at_1": 0.2308,
+      "hit_at_3": 0.5385,
+      "hit_at_5": 0.5385,
+      "mrr": 0.3718,
+      "negative_above_gold_rate": 0.2308,
+      "avg_latency_ms": 1344.44
+    },
+    "edge_cross_encoder::latest_observation": {
+      "queries": 6,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.1667,
+      "hit_at_5": 0.1667,
+      "mrr": 0.0556,
+      "negative_above_gold_rate": 0.1667,
+      "avg_latency_ms": 1195.22
+    },
+    "edge_cross_encoder::point_in_time": {
+      "queries": 18,
+      "hit_at_1": 0.1111,
+      "hit_at_3": 0.2778,
+      "hit_at_5": 0.2778,
+      "mrr": 0.1852,
+      "negative_above_gold_rate": 0.1111,
+      "avg_latency_ms": 1210.6
+    },
+    "edge_cross_encoder::semantic_fact": {
+      "queries": 1,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.0,
+      "hit_at_5": 0.0,
+      "mrr": 0.0,
+      "negative_above_gold_rate": 0.0,
+      "avg_latency_ms": 1192.61
+    },
+    "edge_cross_encoder::timeline": {
+      "queries": 13,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.0,
+      "hit_at_5": 0.0,
+      "mrr": 0.0,
+      "negative_above_gold_rate": 0.0,
+      "avg_latency_ms": 1189.24
+    },
+    "edge_episode_mentions::current_state": {
+      "queries": 13,
+      "hit_at_1": 0.1538,
+      "hit_at_3": 0.5385,
+      "hit_at_5": 0.5385,
+      "mrr": 0.3077,
+      "negative_above_gold_rate": 0.2308,
+      "avg_latency_ms": 497.9
+    },
+    "edge_episode_mentions::latest_observation": {
+      "queries": 6,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.1667,
+      "hit_at_5": 0.1667,
+      "mrr": 0.0556,
+      "negative_above_gold_rate": 0.1667,
+      "avg_latency_ms": 506.31
+    },
+    "edge_episode_mentions::point_in_time": {
+      "queries": 18,
+      "hit_at_1": 0.1111,
+      "hit_at_3": 0.2778,
+      "hit_at_5": 0.2778,
+      "mrr": 0.1759,
+      "negative_above_gold_rate": 0.1111,
+      "avg_latency_ms": 561.16
+    },
+    "edge_episode_mentions::semantic_fact": {
+      "queries": 1,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.0,
+      "hit_at_5": 0.0,
+      "mrr": 0.0,
+      "negative_above_gold_rate": 0.0,
+      "avg_latency_ms": 486.74
+    },
+    "edge_episode_mentions::timeline": {
+      "queries": 13,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.0,
+      "hit_at_5": 0.0,
+      "mrr": 0.0,
+      "negative_above_gold_rate": 0.0,
+      "avg_latency_ms": 507.79
+    },
+    "edge_mmr::current_state": {
+      "queries": 13,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.0,
+      "hit_at_5": 0.0,
+      "mrr": 0.0,
+      "negative_above_gold_rate": 0.0,
+      "avg_latency_ms": 538.29
+    },
+    "edge_mmr::latest_observation": {
+      "queries": 6,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.0,
+      "hit_at_5": 0.0,
+      "mrr": 0.0,
+      "negative_above_gold_rate": 0.0,
+      "avg_latency_ms": 623.3
+    },
+    "edge_mmr::point_in_time": {
+      "queries": 18,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.0556,
+      "hit_at_5": 0.0556,
+      "mrr": 0.0278,
+      "negative_above_gold_rate": 0.0556,
+      "avg_latency_ms": 567.93
+    },
+    "edge_mmr::semantic_fact": {
+      "queries": 1,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.0,
+      "hit_at_5": 0.0,
+      "mrr": 0.0,
+      "negative_above_gold_rate": 0.0,
+      "avg_latency_ms": 570.39
+    },
+    "edge_mmr::timeline": {
+      "queries": 13,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.0,
+      "hit_at_5": 0.0,
+      "mrr": 0.0,
+      "negative_above_gold_rate": 0.0,
+      "avg_latency_ms": 584.53
+    },
+    "edge_rrf::current_state": {
+      "queries": 13,
+      "hit_at_1": 0.2308,
+      "hit_at_3": 0.5385,
+      "hit_at_5": 0.5385,
+      "mrr": 0.3462,
+      "negative_above_gold_rate": 0.2308,
+      "avg_latency_ms": 617.26
+    },
+    "edge_rrf::latest_observation": {
+      "queries": 6,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.1667,
+      "hit_at_5": 0.1667,
+      "mrr": 0.0556,
+      "negative_above_gold_rate": 0.1667,
+      "avg_latency_ms": 527.23
+    },
+    "edge_rrf::point_in_time": {
+      "queries": 18,
+      "hit_at_1": 0.1111,
+      "hit_at_3": 0.2778,
+      "hit_at_5": 0.2778,
+      "mrr": 0.1759,
+      "negative_above_gold_rate": 0.1111,
+      "avg_latency_ms": 577.68
+    },
+    "edge_rrf::semantic_fact": {
+      "queries": 1,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.0,
+      "hit_at_5": 0.0,
+      "mrr": 0.0,
+      "negative_above_gold_rate": 0.0,
+      "avg_latency_ms": 752.49
+    },
+    "edge_rrf::timeline": {
+      "queries": 13,
+      "hit_at_1": 0.0,
+      "hit_at_3": 0.0,
+      "hit_at_5": 0.0,
+      "mrr": 0.0,
+      "negative_above_gold_rate": 0.0,
+      "avg_latency_ms": 515.49
+    }
+  }
+}
