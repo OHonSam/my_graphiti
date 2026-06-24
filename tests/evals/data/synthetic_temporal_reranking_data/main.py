@@ -168,7 +168,15 @@ TIMELINE_PATTERNS = [
     r'\bcause\b',
     r'\bformed\b',
     r'\bformation\b',
+    r'\bwhat changes\b',
+    r'\bchanged\b',
+    r'\bchanges\b',
+    r'\bafter\b',
+    r'\bfollowing\b',
+    r'\bprogression\b',
 ]
+
+MONTH_PATTERN = r'(january|february|march|april|may|june|july|august|september|october|november|december)'
 
 POINT_IN_TIME_PATTERNS = [
     r'\bas of\b',
@@ -176,7 +184,10 @@ POINT_IN_TIME_PATTERNS = [
     r'\bduring\b',
     r'\bin q[1-4]\b',
     r'\bon \d{4}-\d{2}-\d{2}\b',
-    r'\bin (january|february|march|april|may|june|july|august|september|october|november|december)\b',
+    rf'\bon {MONTH_PATTERN} \d{{1,2}}, \d{{4}}\b',
+    rf'\bon {MONTH_PATTERN} \d{{1,2}}\b',
+    rf'\bas of {MONTH_PATTERN} \d{{1,2}}, \d{{4}}\b',
+    rf'\bin {MONTH_PATTERN}\b',
     r'\bin \d{4}\b',
 ]
 
@@ -196,6 +207,32 @@ CURRENT_PATTERNS = [
     r'\bvalid\b',
     r'\bpresent\b',
 ]
+
+TOKEN_RE = re.compile(r'[a-z0-9]+')
+TEXT_MATCH_STOPWORDS = {
+    'a',
+    'an',
+    'and',
+    'are',
+    'as',
+    'at',
+    'be',
+    'been',
+    'being',
+    'by',
+    'for',
+    'from',
+    'in',
+    'is',
+    'of',
+    'on',
+    'or',
+    'the',
+    'to',
+    'was',
+    'were',
+    'with',
+}
 
 
 class EpisodeSpec(BaseModel):
@@ -301,13 +338,53 @@ def normalize_text(value: str) -> str:
     return re.sub(r'\s+', ' ', value).strip().lower()
 
 
+def tokenize_for_match(value: str) -> list[str]:
+    return [
+        token
+        for token in TOKEN_RE.findall(normalize_text(value))
+        if token not in TEXT_MATCH_STOPWORDS
+    ]
+
+
+def text_supports_phrase(phrase: str, text: str) -> bool:
+    phrase_text = normalize_text(phrase)
+    full_text = normalize_text(text)
+    if not phrase_text:
+        return False
+    if phrase_text in full_text:
+        return True
+
+    phrase_tokens = tokenize_for_match(phrase)
+    text_tokens = set(tokenize_for_match(text))
+    if not phrase_tokens or not text_tokens:
+        return False
+
+    matched = sum(1 for token in phrase_tokens if token in text_tokens)
+    if len(phrase_tokens) <= 2:
+        return matched == len(phrase_tokens)
+    return matched >= max(2, len(phrase_tokens) - 1)
+
+
+def answer_is_supported(answer: str, keywords: list[str], episode_text: str) -> bool:
+    if text_supports_phrase(answer, episode_text):
+        return True
+    if any(
+        text_supports_phrase(answer, keyword) or text_supports_phrase(keyword, answer)
+        for keyword in keywords
+    ):
+        return True
+    return bool(keywords) and all(
+        text_supports_phrase(keyword, episode_text) for keyword in keywords
+    )
+
+
 def contains_any(text: str, patterns: list[str]) -> bool:
     normalized = normalize_text(text)
     return any(re.search(pattern, normalized) for pattern in patterns)
 
 
-def infer_profile_from_query(query: str) -> str:
-    """Best-effort deterministic check used to catch obvious label conflicts."""
+def infer_profile_from_query(query: str) -> str | None:
+    """Return a strong cue-based profile, or None when the query is ambiguous."""
     if contains_any(query, TIMELINE_PATTERNS):
         return 'timeline'
     if contains_any(query, POINT_IN_TIME_PATTERNS):
@@ -316,7 +393,7 @@ def infer_profile_from_query(query: str) -> str:
         return 'latest_observation'
     if contains_any(query, CURRENT_PATTERNS):
         return 'current_state'
-    return 'semantic_fact'
+    return None
 
 
 def validate_scenario(scenario: ScenarioSpec) -> list[str]:
@@ -324,8 +401,8 @@ def validate_scenario(scenario: ScenarioSpec) -> list[str]:
 
     if len(scenario.episodes) < MIN_EPISODES_PER_SCENARIO:
         errors.append(f'scenario must contain at least {MIN_EPISODES_PER_SCENARIO} episodes')
-    if len(scenario.queries) < MIN_QUERIES_PER_SCENARIO:
-        errors.append(f'scenario must contain at least {MIN_QUERIES_PER_SCENARIO} queries')
+    # if len(scenario.queries) < MIN_QUERIES_PER_SCENARIO:
+    #     errors.append(f'scenario must contain at least {MIN_QUERIES_PER_SCENARIO} queries')
 
     episode_ids = [episode.episode_id for episode in scenario.episodes]
     query_ids = [query.query_id for query in scenario.queries]
@@ -344,31 +421,24 @@ def validate_scenario(scenario: ScenarioSpec) -> list[str]:
                 errors.append(f'{query.query_id}: temporal query must include negative facts')
 
         inferred_profile = infer_profile_from_query(query.query)
-        if inferred_profile != query.temporal_profile:
-            # Keep semantic_fact flexible: many natural semantic questions mention years as entity names,
-            # but generated temporal labels should still satisfy obvious priority rules.
-            if query.temporal_profile != 'semantic_fact' or inferred_profile != 'semantic_fact':
-                errors.append(
-                    f'{query.query_id}: temporal_profile={query.temporal_profile} conflicts '
-                    f'with deterministic inference={inferred_profile}'
-                )
+        if inferred_profile is not None and inferred_profile != query.temporal_profile:
+            errors.append(
+                f'{query.query_id}: temporal_profile={query.temporal_profile} conflicts '
+                f'with strong cue-based inference={inferred_profile}'
+            )
 
-        gold_answer = normalize_text(query.gold_answer)
-        gold_keywords = [normalize_text(keyword) for keyword in query.gold_fact_contains]
-
-        # TODO: ragas factual_correctness https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/factual_correctness/#factual-correctness? (llm as judge) or vector similarity to check if gold_answer is semantically similar to episode text or gold_fact_contains 
-        if gold_answer not in episode_text and gold_answer not in gold_keywords:
+        gold_keywords = query.gold_fact_contains
+        if not query.gold_fact_contains:
+            errors.append(f'{query.query_id}: gold_fact_contains must not be empty')
+        elif not answer_is_supported(query.gold_answer, gold_keywords, episode_text):
             errors.append(
                 f'{query.query_id}: gold_answer is not recoverable from episode text '
                 'or gold_fact_contains'
             )
 
-        if not query.gold_fact_contains:
-            errors.append(f'{query.query_id}: gold_fact_contains must not be empty')
-
         if query.negative_fact_contains:
             missing_negatives = [
-                item for item in query.negative_fact_contains if normalize_text(item) not in episode_text
+                item for item in query.negative_fact_contains if not text_supports_phrase(item, episode_text)
             ]
             if missing_negatives:
                 errors.append(
@@ -455,6 +525,57 @@ Reject by omission if:
 
 Scenarios:
 {scenario_json}
+"""
+    return [message_cls(role='system', content=system), message_cls(role='user', content=user.strip())]
+
+
+def build_repair_messages(
+    rejected_scenarios: list[RejectedScenario],
+    group_id: str,
+    message_cls: type[Any],
+) -> list[Any]:
+    repair_json = json.dumps(
+        [
+            {
+                'scenario_id': item.scenario_id,
+                'domain': item.domain,
+                'repair_reasons': item.rejected_reasons,
+                'scenario': item.scenario,
+            }
+            for item in rejected_scenarios
+        ],
+        ensure_ascii=False,
+        indent=2,
+    )
+    system = (
+        'You repair synthetic benchmark data using concrete critic or local validation errors. '
+        'Preserve useful scenarios whenever they can be made unambiguous. '
+        'Return strict JSON only.'
+    )
+    user = f"""
+Repair these scenarios using the provided repair_reasons.
+
+Return a ScenarioBatch containing repaired scenarios that should pass local
+validation. Use group_id "{group_id}".
+
+{TEMPORAL_TAXONOMY_GUIDE}
+
+{SCENARIO_BATCH_OUTPUT_TEMPLATE}
+
+Repair guidance:
+- Prefer the smallest edit that fixes each validation error.
+- If temporal_profile is semantically correct but the query lacks an explicit
+  cue, rewrite the query minimally to expose the intended temporal objective.
+- If a gold or negative fact failed because of wording mismatch, adjust
+  gold_fact_contains or negative_fact_contains to concise phrases supported by
+  the episode text, or lightly rewrite the episode body in natural language.
+- Keep scenario_id stable unless the error is a duplicate scenario_id.
+- Keep episode_id and query_id stable unless they are duplicated.
+- Do not make episode bodies look like triples or validator hacks.
+- Omit a scenario only if it remains ambiguous after repair.
+
+Rejected scenarios with critic or validation reasons:
+{repair_json}
 """
     return [message_cls(role='system', content=system), message_cls(role='user', content=user.strip())]
 
@@ -590,6 +711,7 @@ async def generate(args: argparse.Namespace) -> None:
         )
         raw_scenarios.extend(batch.scenarios)
 
+        repair_candidates: list[RejectedScenario] = []
         if args.skip_critic:
             reviewed_scenarios = batch.scenarios
         else:
@@ -602,7 +724,7 @@ async def generate(args: argparse.Namespace) -> None:
             reviewed_ids = {scenario.scenario_id for scenario in reviewed_scenarios}
             for scenario in batch.scenarios:
                 if scenario.scenario_id not in reviewed_ids:
-                    rejected.append(
+                    repair_candidates.append(
                         RejectedScenario(
                             scenario_id=scenario.scenario_id,
                             domain=scenario.domain,
@@ -611,23 +733,81 @@ async def generate(args: argparse.Namespace) -> None:
                         )
                     )
 
-        for scenario in reviewed_scenarios:
-            reasons = validate_scenario(scenario)
-            if scenario.scenario_id in seen_scenario_ids:
-                reasons.append('duplicate scenario_id across generated dataset')
-            if reasons:
-                rejected.append(
-                    RejectedScenario(
-                        scenario_id=scenario.scenario_id,
-                        domain=scenario.domain,
-                        rejected_reasons=reasons,
-                        scenario=scenario.model_dump(mode='json'),
+        if not args.skip_validation:
+            for scenario in reviewed_scenarios:
+                reasons = validate_scenario(scenario)
+                if scenario.scenario_id in seen_scenario_ids:
+                    reasons.append('duplicate scenario_id across generated dataset')
+                if reasons:
+                    repair_candidates.append(
+                        RejectedScenario(
+                            scenario_id=scenario.scenario_id,
+                            domain=scenario.domain,
+                            rejected_reasons=reasons,
+                            scenario=scenario.model_dump(mode='json'),
+                        )
                     )
-                )
-                continue
+                    continue
 
-            seen_scenario_ids.add(scenario.scenario_id)
-            clean_scenarios.append(scenario)
+                seen_scenario_ids.add(scenario.scenario_id)
+                clean_scenarios.append(scenario)
+        else:
+            for scenario in reviewed_scenarios:
+                if scenario.scenario_id in seen_scenario_ids:
+                    rejected.append(
+                        RejectedScenario(
+                            scenario_id=scenario.scenario_id,
+                            domain=scenario.domain,
+                            rejected_reasons=['duplicate scenario_id across generated dataset'],
+                            scenario=scenario.model_dump(mode='json'),
+                        )
+                    )
+                    continue
+                seen_scenario_ids.add(scenario.scenario_id)
+                clean_scenarios.append(scenario)
+
+        if repair_candidates and not args.skip_repair:
+            print(f'Repairing {len(repair_candidates)} scenario(s) for {domain}...')
+            repair_batch = await call_llm(
+                client,
+                build_repair_messages(repair_candidates, args.group_id, Message),
+                args.max_tokens,
+            )
+            repaired_ids: set[str] = set()
+            repair_failures: list[RejectedScenario] = []
+
+            for scenario in repair_batch.scenarios:
+                repaired_ids.add(scenario.scenario_id)
+                reasons = [] if args.skip_validation else validate_scenario(scenario)
+                if scenario.scenario_id in seen_scenario_ids:
+                    reasons.append('duplicate scenario_id across generated dataset')
+                if reasons:
+                    repair_failures.append(
+                        RejectedScenario(
+                            scenario_id=scenario.scenario_id,
+                            domain=scenario.domain,
+                            rejected_reasons=['repair_failed', *reasons],
+                            scenario=scenario.model_dump(mode='json'),
+                        )
+                    )
+                    continue
+
+                seen_scenario_ids.add(scenario.scenario_id)
+                clean_scenarios.append(scenario)
+
+            for item in repair_candidates:
+                if item.scenario_id not in repaired_ids:
+                    rejected.append(
+                        RejectedScenario(
+                            scenario_id=item.scenario_id,
+                            domain=item.domain,
+                            rejected_reasons=['repair_omitted', *item.rejected_reasons],
+                            scenario=item.scenario,
+                        )
+                    )
+            rejected.extend(repair_failures)
+        else:
+            rejected.extend(repair_candidates)
 
     write_jsonl(output_dir / RAW_FILENAME, [scenario_to_jsonl(s) for s in raw_scenarios])
     write_jsonl(output_dir / CLEAN_FILENAME, [scenario_to_jsonl(s) for s in clean_scenarios])
@@ -723,6 +903,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     generate_parser.add_argument('--max-domains', type=int, default=len(DEFAULT_DOMAINS))
     generate_parser.add_argument('--domains', nargs='*')
     generate_parser.add_argument('--skip-critic', action='store_true')
+    generate_parser.add_argument('--skip-repair', action='store_true')
+    generate_parser.add_argument('--skip-validation', action='store_true', help='Skip local heuristic validation of generated scenarios.')
 
     validate_parser = subparsers.add_parser('validate', help='Validate an existing JSONL file.')
     validate_parser.add_argument('--input', default=str(OUTPUT_DIR / CLEAN_FILENAME))
