@@ -1,0 +1,175 @@
+{
+  "generated_at": "2026-06-25T08:01:00.423753+00:00",
+  "dataset": "D:\\APCS\\VDT\\my_graphiti\\tests\\evals\\data\\longmemeval_data\\longmemeval_oracle.json",
+  "sample_size": 10,
+  "seed": 13,
+  "question_types": [
+    "temporal-reasoning",
+    "knowledge-update"
+  ],
+  "selected_question_ids": [
+    "gpt4_f420262c",
+    "c9f37c46",
+    "gpt4_2f584639",
+    "gpt4_af6db32f",
+    "8c18457d",
+    "18bc8abd",
+    "22d2cb42",
+    "07741c44",
+    "5831f84d",
+    "e61a7584"
+  ],
+  "selected_question_type_counts": {
+    "knowledge-update": 5,
+    "temporal-reasoning": 5
+  },
+  "total_rows": 40,
+  "rerankers": {
+    "edge_cross_encoder": {
+      "queries": 10,
+      "any_evidence_hit_at_1": 0.7,
+      "any_evidence_hit_at_3": 0.7,
+      "any_evidence_hit_at_5": 0.7,
+      "evidence_recall_at_1": 0.32,
+      "evidence_recall_at_3": 0.41,
+      "evidence_recall_at_5": 0.41,
+      "all_evidence_hit_at_5": 0.1,
+      "first_evidence_mrr": 0.7167,
+      "avg_latency_ms": 1706.82
+    },
+    "edge_episode_mentions": {
+      "queries": 10,
+      "any_evidence_hit_at_1": 0.8,
+      "any_evidence_hit_at_3": 0.8,
+      "any_evidence_hit_at_5": 0.8,
+      "evidence_recall_at_1": 0.42,
+      "evidence_recall_at_3": 0.49,
+      "evidence_recall_at_5": 0.54,
+      "all_evidence_hit_at_5": 0.3,
+      "first_evidence_mrr": 0.8,
+      "avg_latency_ms": 526.87
+    },
+    "edge_mmr": {
+      "queries": 10,
+      "any_evidence_hit_at_1": 0.1,
+      "any_evidence_hit_at_3": 0.1,
+      "any_evidence_hit_at_5": 0.1,
+      "evidence_recall_at_1": 0.05,
+      "evidence_recall_at_3": 0.05,
+      "evidence_recall_at_5": 0.05,
+      "all_evidence_hit_at_5": 0.0,
+      "first_evidence_mrr": 0.1,
+      "avg_latency_ms": 581.03
+    },
+    "edge_rrf": {
+      "queries": 10,
+      "any_evidence_hit_at_1": 0.8,
+      "any_evidence_hit_at_3": 0.8,
+      "any_evidence_hit_at_5": 0.8,
+      "evidence_recall_at_1": 0.42,
+      "evidence_recall_at_3": 0.49,
+      "evidence_recall_at_5": 0.54,
+      "all_evidence_hit_at_5": 0.3,
+      "first_evidence_mrr": 0.8,
+      "avg_latency_ms": 612.1
+    }
+  },
+  "reranker_question_types": {
+    "edge_cross_encoder::knowledge-update": {
+      "queries": 5,
+      "any_evidence_hit_at_1": 0.8,
+      "any_evidence_hit_at_3": 0.8,
+      "any_evidence_hit_at_5": 0.8,
+      "evidence_recall_at_1": 0.4,
+      "evidence_recall_at_3": 0.5,
+      "evidence_recall_at_5": 0.5,
+      "all_evidence_hit_at_5": 0.2,
+      "first_evidence_mrr": 0.8,
+      "avg_latency_ms": 1537.34
+    },
+    "edge_cross_encoder::temporal-reasoning": {
+      "queries": 5,
+      "any_evidence_hit_at_1": 0.6,
+      "any_evidence_hit_at_3": 0.6,
+      "any_evidence_hit_at_5": 0.6,
+      "evidence_recall_at_1": 0.24,
+      "evidence_recall_at_3": 0.32,
+      "evidence_recall_at_5": 0.32,
+      "all_evidence_hit_at_5": 0.0,
+      "first_evidence_mrr": 0.6333,
+      "avg_latency_ms": 1876.3
+    },
+    "edge_episode_mentions::knowledge-update": {
+      "queries": 5,
+      "any_evidence_hit_at_1": 0.8,
+      "any_evidence_hit_at_3": 0.8,
+      "any_evidence_hit_at_5": 0.8,
+      "evidence_recall_at_1": 0.4,
+      "evidence_recall_at_3": 0.5,
+      "evidence_recall_at_5": 0.5,
+      "all_evidence_hit_at_5": 0.2,
+      "first_evidence_mrr": 0.8,
+      "avg_latency_ms": 550.96
+    },
+    "edge_episode_mentions::temporal-reasoning": {
+      "queries": 5,
+      "any_evidence_hit_at_1": 0.8,
+      "any_evidence_hit_at_3": 0.8,
+      "any_evidence_hit_at_5": 0.8,
+      "evidence_recall_at_1": 0.44,
+      "evidence_recall_at_3": 0.48,
+      "evidence_recall_at_5": 0.58,
+      "all_evidence_hit_at_5": 0.4,
+      "first_evidence_mrr": 0.8,
+      "avg_latency_ms": 502.78
+    },
+    "edge_mmr::knowledge-update": {
+      "queries": 5,
+      "any_evidence_hit_at_1": 0.2,
+      "any_evidence_hit_at_3": 0.2,
+      "any_evidence_hit_at_5": 0.2,
+      "evidence_recall_at_1": 0.1,
+      "evidence_recall_at_3": 0.1,
+      "evidence_recall_at_5": 0.1,
+      "all_evidence_hit_at_5": 0.0,
+      "first_evidence_mrr": 0.2,
+      "avg_latency_ms": 530.07
+    },
+    "edge_mmr::temporal-reasoning": {
+      "queries": 5,
+      "any_evidence_hit_at_1": 0.0,
+      "any_evidence_hit_at_3": 0.0,
+      "any_evidence_hit_at_5": 0.0,
+      "evidence_recall_at_1": 0.0,
+      "evidence_recall_at_3": 0.0,
+      "evidence_recall_at_5": 0.0,
+      "all_evidence_hit_at_5": 0.0,
+      "first_evidence_mrr": 0.0,
+      "avg_latency_ms": 631.99
+    },
+    "edge_rrf::knowledge-update": {
+      "queries": 5,
+      "any_evidence_hit_at_1": 0.8,
+      "any_evidence_hit_at_3": 0.8,
+      "any_evidence_hit_at_5": 0.8,
+      "evidence_recall_at_1": 0.4,
+      "evidence_recall_at_3": 0.5,
+      "evidence_recall_at_5": 0.5,
+      "all_evidence_hit_at_5": 0.2,
+      "first_evidence_mrr": 0.8,
+      "avg_latency_ms": 437.76
+    },
+    "edge_rrf::temporal-reasoning": {
+      "queries": 5,
+      "any_evidence_hit_at_1": 0.8,
+      "any_evidence_hit_at_3": 0.8,
+      "any_evidence_hit_at_5": 0.8,
+      "evidence_recall_at_1": 0.44,
+      "evidence_recall_at_3": 0.48,
+      "evidence_recall_at_5": 0.58,
+      "all_evidence_hit_at_5": 0.4,
+      "first_evidence_mrr": 0.8,
+      "avg_latency_ms": 786.43
+    }
+  }
+}
