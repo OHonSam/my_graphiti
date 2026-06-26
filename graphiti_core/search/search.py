@@ -18,6 +18,8 @@ import logging
 from collections import defaultdict
 from collections.abc import Generator
 from contextlib import contextmanager
+from datetime import datetime, timedelta
+from math import exp
 from time import time
 from typing import Any
 
@@ -44,6 +46,8 @@ from graphiti_core.search.search_config import (
     NodeSearchMethod,
     SearchConfig,
     SearchResults,
+    TemporalDecayConfig,
+    TemporalDecayFunction,
 )
 from graphiti_core.search.search_filters import SearchFilters
 from graphiti_core.search.search_utils import (
@@ -65,6 +69,7 @@ from graphiti_core.search.search_utils import (
     rrf,
 )
 from graphiti_core.tracer import NoOpTracer, Tracer
+from graphiti_core.utils.datetime_utils import ensure_utc, utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +80,102 @@ def _enum_value(value: Any) -> Any:
 
 def _resolve_tracer(search_tracer: Tracer | None) -> Tracer:
     return search_tracer if search_tracer is not None else NoOpTracer()
+
+
+def calculate_temporal_decay(days: float, config: TemporalDecayConfig) -> float:
+    distance = max(0.0, days)
+    scale = config.scale_days
+    if config.function == TemporalDecayFunction.gaussian:
+        return exp(-((distance**2) / (2 * (scale**2))))
+    if config.function == TemporalDecayFunction.ebbinghaus:
+        return exp(-(distance / scale))
+    if config.function == TemporalDecayFunction.half_life:
+        return 0.5 ** (distance / scale)
+    raise ValueError(f'Unsupported temporal decay function: {config.function}')
+
+
+def edge_temporal_distance_days(edge: EntityEdge, reference_time: datetime) -> float | None:
+    seconds_per_day = timedelta(days=1).total_seconds()
+
+    reference = ensure_utc(reference_time)
+    if reference is None:
+        return None
+
+    # Prioritize valid_at date even if it is in the future
+    valid_from = (
+        ensure_utc(getattr(edge, 'valid_at', None)) 
+        or ensure_utc(getattr(edge, 'created_at', None))
+    )
+
+    valid_until_candidates = [
+        value
+        for value in [
+            ensure_utc(getattr(edge, 'invalid_at', None)),
+            ensure_utc(getattr(edge, 'expired_at', None)),
+        ]
+        if value
+    ]
+    valid_until = min(valid_until_candidates) if valid_until_candidates else None
+
+    if valid_from is not None and valid_until is not None:
+        if valid_from <= reference <= valid_until:
+            return 0.0
+        return min(
+            abs((reference - valid_from).total_seconds()),
+            abs((reference - valid_until).total_seconds()),
+        ) / seconds_per_day
+
+    # If only one of valid_from or valid_until is present, calculate the distance to that boundary
+    if valid_from is not None:
+        boundary = valid_from
+    elif valid_until is not None:
+        boundary = valid_until
+    else:
+        return None
+    
+    return abs((reference - boundary).total_seconds()) / seconds_per_day
+
+
+def edge_temporal_score(edge: EntityEdge, config: TemporalDecayConfig) -> float:
+    reference_time = config.reference_time or utc_now()
+    distance = edge_temporal_distance_days(edge, reference_time)
+    if distance is None:
+        logger.warning(f"Edge {edge.uuid} has no valid temporal boundaries. There must always exist created_at attribute!")
+        return 0.0
+    return calculate_temporal_decay(distance, config)
+
+
+def normalize_scores(scores: list[float], target_count: int) -> list[float]:
+    padded_scores = [
+        float(scores[index]) if index < len(scores) else 0.0 for index in range(target_count)
+    ]
+    if not padded_scores:
+        return []
+
+    min_score = min(padded_scores)
+    max_score = max(padded_scores)
+    if max_score == min_score:
+        return [1.0] * len(padded_scores)
+
+    score_range = max_score - min_score
+    return [(score - min_score) / score_range for score in padded_scores]
+
+
+def apply_temporal_decay(
+    edges: list[EntityEdge],
+    base_scores: list[float],
+    config: TemporalDecayConfig,
+) -> tuple[list[EntityEdge], list[float]]:
+    normalized_base_scores = normalize_scores(base_scores, len(edges))
+    weighted_edges: list[tuple[EntityEdge, float]] = []
+
+    for edge, base_score in zip(edges, normalized_base_scores, strict=True):
+        temporal_score = edge_temporal_score(edge, config)
+        final_score = (1 - config.temporal_weight) * base_score + config.temporal_weight * temporal_score
+        weighted_edges.append((edge, final_score))
+
+    weighted_edges.sort(key=lambda item: item[1], reverse=True)
+    return [edge for edge, _ in weighted_edges], [score for _, score in weighted_edges]
 
 
 @contextmanager
@@ -179,6 +280,7 @@ async def search(
                 group_ids,
                 config.edge_config,
                 search_filter,
+                config.temporal_decay_config,
                 center_node_uuid,
                 bfs_origin_node_uuids,
                 config.limit,
@@ -258,6 +360,7 @@ async def edge_search(
     group_ids: list[str] | None,
     config: EdgeSearchConfig | None,
     search_filter: SearchFilters,
+    temporal_decay_config: TemporalDecayConfig | None = None,
     center_node_uuid: str | None = None,
     bfs_origin_node_uuids: list[str] | None = None,
     limit=DEFAULT_SEARCH_LIMIT,
@@ -448,6 +551,32 @@ async def edge_search(
 
         if config.reranker == EdgeReranker.episode_mentions:
             reranked_edges.sort(reverse=True, key=lambda edge: len(edge.episodes))
+
+            if temporal_decay_config is not None:
+                edge_scores = [float(len(edge.episodes)) for edge in reranked_edges]
+            else:
+                max_mentions = max((len(edge.episodes) for edge in reranked_edges), default=1)
+                edge_scores = [len(edge.episodes) / max_mentions for edge in reranked_edges]
+
+        if temporal_decay_config is not None:
+            with _trace_phase(
+                search_tracer,
+                'search.edge_search.temporal_decay',
+                {
+                    'candidate_count': len(reranked_edges),
+                    'temporal_decay.function': temporal_decay_config.function.value,
+                    'temporal_decay.scale_days': temporal_decay_config.scale_days,
+                    'temporal_decay.weight': temporal_decay_config.temporal_weight,
+                    'temporal_decay.reference_time.provided': (
+                        temporal_decay_config.reference_time is not None
+                    ),
+                },
+            ):
+                reranked_edges, edge_scores = apply_temporal_decay(
+                    reranked_edges,
+                    edge_scores,
+                    temporal_decay_config,
+                )
 
         span.add_attributes(
             {

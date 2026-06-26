@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from datetime import datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -56,6 +57,19 @@ class EdgeReranker(Enum):
     episode_mentions = 'episode_mentions'
     mmr = 'mmr'
     cross_encoder = 'cross_encoder'
+
+
+class TemporalDecayFunction(Enum):
+    gaussian = 'gaussian'
+    ebbinghaus = 'ebbinghaus'
+    half_life = 'half_life'
+
+
+class TemporalDecayConfig(BaseModel):
+    function: TemporalDecayFunction = Field(default=TemporalDecayFunction.gaussian)
+    reference_time: datetime | None = Field(default=None)
+    scale_days: float = Field(default=30.0, gt=0)
+    temporal_weight: float = Field(default=0.25, ge=0, le=1)
 
 
 class NodeReranker(Enum):
@@ -114,6 +128,7 @@ class SearchConfig(BaseModel):
     node_config: NodeSearchConfig | None = Field(default=None)
     episode_config: EpisodeSearchConfig | None = Field(default=None)
     community_config: CommunitySearchConfig | None = Field(default=None)
+    temporal_decay_config: TemporalDecayConfig | None = Field(default=None)
     limit: int = Field(default=DEFAULT_SEARCH_LIMIT)
     reranker_min_score: float = Field(default=0)
 
