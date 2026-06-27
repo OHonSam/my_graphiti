@@ -118,12 +118,18 @@ def edge_temporal_distance_days(edge: EntityEdge, reference_time: datetime) -> f
     valid_until = min(valid_until_candidates) if valid_until_candidates else None
 
     if valid_from is not None and valid_until is not None:
-        if valid_from <= reference <= valid_until:
-            return 0.0
-        return min(
-            abs((reference - valid_from).total_seconds()),
-            abs((reference - valid_until).total_seconds()),
-        ) / seconds_per_day
+        if valid_until < valid_from: 
+            return min( 
+                abs((reference - valid_from).total_seconds()), 
+                abs((reference - valid_until).total_seconds()), 
+            ) / seconds_per_day 
+        
+        if valid_from <= reference <= valid_until: 
+            return 0.0 
+        elif reference < valid_from: 
+            return (valid_from - reference).total_seconds() / seconds_per_day 
+        else:
+            return (reference - valid_until).total_seconds() / seconds_per_day
 
     # If only one of valid_from or valid_until is present, calculate the distance to that boundary
     if valid_from is not None:
