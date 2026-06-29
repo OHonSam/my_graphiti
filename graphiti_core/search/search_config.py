@@ -69,7 +69,7 @@ class TemporalDecayConfig(BaseModel):
     function: TemporalDecayFunction = Field(default=TemporalDecayFunction.gaussian)
     reference_time: datetime | None = Field(default=None)
     scale_days: float = Field(default=30.0, gt=0)
-    temporal_weight: float = Field(default=0.25, ge=0, le=1)
+    temporal_weight: float = Field(default=0.4, ge=0, le=1)
 
 
 class NodeReranker(Enum):

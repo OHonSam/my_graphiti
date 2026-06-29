@@ -142,13 +142,106 @@ def edge_temporal_distance_days(edge: EntityEdge, reference_time: datetime) -> f
     return abs((reference - boundary).total_seconds()) / seconds_per_day
 
 
-def edge_temporal_score(edge: EntityEdge, config: TemporalDecayConfig) -> float:
+def edge_temporal_score_v1(edge: EntityEdge, config: TemporalDecayConfig) -> float:
     reference_time = config.reference_time or utc_now()
     distance = edge_temporal_distance_days(edge, reference_time)
     if distance is None:
         logger.warning(f"Edge {edge.uuid} has no valid temporal boundaries. There must always exist created_at attribute!")
         return 0.0
     return calculate_temporal_decay(distance, config)
+
+
+def calc_temporal_relevance(
+        edge: EntityEdge, 
+        reference_time: datetime, 
+        config: TemporalDecayConfig,
+        epsilon: float = 1e-4
+) -> float:
+    
+    created_at = ensure_utc(getattr(edge, 'created_at', None))
+    valid_at = ensure_utc(getattr(edge, 'valid_at', None))
+    invalid_at = ensure_utc(getattr(edge, 'invalid_at', None))
+
+    if created_at is None:
+        logger.error(f"Edge {edge.uuid} has no created_at attribute. Undefined Graphiti behavior.")
+        return 0.0
+
+    if valid_at is None and invalid_at is None:
+        return calculate_temporal_decay((reference_time - created_at).days, config)
+    
+    if valid_at is not None and invalid_at is not None:
+        day_dist = min(
+            abs((reference_time - valid_at).days), 
+            abs((reference_time - invalid_at).days)
+        )
+
+        if valid_at <= reference_time <= invalid_at:
+            return 1.0 - epsilon * day_dist
+        else:
+            return calculate_temporal_decay(day_dist, config)
+        
+    if valid_at is not None:
+        day_dist = abs((reference_time - valid_at).days)
+        if reference_time >= valid_at:
+            return 1.0 - epsilon * day_dist
+        else:
+            return calculate_temporal_decay(day_dist, config)
+        
+    if invalid_at is not None:
+        day_dist = abs((reference_time - invalid_at).days)
+        if reference_time <= invalid_at:
+            return 1.0 - epsilon * day_dist
+        else:
+            return calculate_temporal_decay(day_dist, config)
+        
+    return 1.0
+
+
+def calc_temporal_confidence(
+        edge: EntityEdge, 
+        reference_time: datetime, 
+) -> float:
+    
+    created_at = ensure_utc(getattr(edge, 'created_at', None))
+    valid_at = ensure_utc(getattr(edge, 'valid_at', None))
+    invalid_at = ensure_utc(getattr(edge, 'invalid_at', None))
+    expired_at = ensure_utc(getattr(edge, 'expired_at', None))
+
+    if created_at is None:
+        logger.error(f"Edge {edge.uuid} has no created_at attribute. Undefined Graphiti behavior.")
+        return 0.0
+
+    if valid_at is None and invalid_at is None:
+        return 0.5
+    
+    downgrade_score = 0.4 if expired_at is not None else 0.0
+
+    if valid_at is not None and invalid_at is not None:
+        if valid_at <= reference_time <= invalid_at:
+            return 1.0 - downgrade_score
+        else:
+            return 0.8 - downgrade_score
+    
+    if valid_at is not None:
+        if reference_time >= valid_at:
+            return 1.0 - downgrade_score
+        else:
+            return 0.8 - downgrade_score
+        
+    if invalid_at is not None:
+        if reference_time <= invalid_at:
+            return 1.0 - downgrade_score
+        else:
+            return 0.8 - downgrade_score
+        
+    return 1.0
+
+
+def edge_temporal_score_v2(edge: EntityEdge, config: TemporalDecayConfig) -> float:
+    reference_time = config.reference_time or utc_now()
+    relevence_score = calc_temporal_relevance(edge, reference_time, config, epsilon=1e-4)
+    confidence_score = calc_temporal_confidence(edge, reference_time)
+    return  relevence_score * confidence_score
 
 
 def normalize_scores(scores: list[float], target_count: int) -> list[float]:
@@ -176,7 +269,8 @@ def apply_temporal_decay(
     weighted_edges: list[tuple[EntityEdge, float]] = []
 
     for edge, base_score in zip(edges, normalized_base_scores, strict=True):
-        temporal_score = edge_temporal_score(edge, config)
+        # temporal_score = edge_temporal_score_v1(edge, config)
+        temporal_score = edge_temporal_score_v2(edge, config)
         final_score = (1 - config.temporal_weight) * base_score + config.temporal_weight * temporal_score
         weighted_edges.append((edge, final_score))
 

@@ -60,7 +60,12 @@ from graphiti_core.nodes import (
 from graphiti_core.prompts.lib import prompt_library
 from graphiti_core.prompts.summarize_sagas import SagaSummary
 from graphiti_core.search.search import SearchConfig, search
-from graphiti_core.search.search_config import DEFAULT_SEARCH_LIMIT, SearchResults
+from graphiti_core.search.search_config import (
+    DEFAULT_SEARCH_LIMIT,
+    SearchResults,
+    TemporalDecayConfig,
+    TemporalDecayFunction,
+)
 from graphiti_core.search.search_config_recipes import (
     COMBINED_HYBRID_SEARCH_CROSS_ENCODER,
     EDGE_HYBRID_SEARCH_NODE_DISTANCE,
@@ -1596,7 +1601,12 @@ class Graphiti:
     ) -> SearchResults:
         """DEPRECATED"""
         return await self.search_(
-            query, config, group_ids, center_node_uuid, bfs_origin_node_uuids, search_filter
+            query,
+            config,
+            group_ids,
+            center_node_uuid,
+            bfs_origin_node_uuids,
+            search_filter,
         )
 
     @handle_multiple_group_ids
